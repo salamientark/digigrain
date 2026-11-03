@@ -8,7 +8,7 @@ tracked in GitHub issues (`gh issue list`; start with the "Tracking" issue, one 
 
 | mod | what | notes |
 |---|---|---|
-| `mods/digigrain` | GRANULAR SRC machine (id 6) | `mods/digigrain/CLAUDE.md` |
+| `mods/digigrain` | GRANULAR SRC machine (id 10) | `mods/digigrain/CLAUDE.md` |
 
 ## Layout and dependency rule
 

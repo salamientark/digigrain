@@ -7,7 +7,7 @@ contributors and agents are in `.claude/skills/` and each mod's `CLAUDE.md`.
 
 | mod | what |
 |---|---|
-| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 6, GRANULAR); 0.0.x verified in the emulator on OS 1.53, 0.1.0 (machine-pages, OS 1.54) emulator-checked only as noted in the commit log |
+| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 10, GRANULAR; 0.0.x used id 6, which Digi Poly also takes, so 0.0.x kits load those tracks as ONESHOT); 0.0.x verified in the emulator on OS 1.53, 0.1.0 (machine-pages, OS 1.54) emulator-checked only as noted in the commit log |
 
 ## Prerequisites
 

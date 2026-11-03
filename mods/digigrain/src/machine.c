@@ -5,8 +5,9 @@
  * voice until granular.c overrides the render. Knob k is the sound's slot 17 + k; a knob whose
  * stock parameter is a switch (PLAY, LOOP) borrows BR's look so it turns through 0..127. */
 #include "digitakt-mk1/core3.h"
+#include "digigrain.h"
 
-#define MACHINE_ID 6                        /* fixed for good: kits store it */
+#define MACHINE_ID DIGIGRAIN_MACHINE_ID     /* fixed for good: kits store it */
 #define ID_BR      0x6e                     /* ONESHOT's BR: a continuous 0..127 knob */
 
 /* readout.c: the value texts, by the ids it keeps for the host tests */

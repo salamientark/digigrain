@@ -5,7 +5,7 @@
  "category": "Machines",
  "author": "lucykowal",
  "license": "GPL-2.0-or-later",
- "description": "Adds a GRANULAR SRC machine (id 6): a granular playback engine. TUNE = speed (pitch and grain length), RATE = grain rate (noon off, periodic CCW, random CW), SPRD = random position (CCW) or pitch (CW), POS = grain position, RTIO = grain length as a ratio of the spawn period, ENV = window (gate to sine to decay), LEV = level. Its SRC and LFO pages are drawn by machine-pages (core 3.0), so it shares a build with the other machines made for it.",
+ "description": "Adds a GRANULAR SRC machine (id 10): a granular playback engine. TUNE = speed (pitch and grain length), RATE = grain rate (noon off, periodic CCW, random CW), SPRD = random position (CCW) or pitch (CW), POS = grain position, RTIO = grain length as a ratio of the spawn period, ENV = window (gate to sine to decay), LEV = level. Its SRC and LFO pages are drawn by machine-pages (core 3.0), so it shares a build with the other machines made for it.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [
@@ -24,7 +24,7 @@
  ],
  "machines": [
   {
-   "id": 6,
+   "id": 10,
    "descriptor": "digigrain_granular_machine"
   }
  ],

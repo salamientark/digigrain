@@ -28,13 +28,14 @@
  */
 #include "digitakt-mk1/core3.h"
 #include "grain.h"
+#include "digigrain.h"
 
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 typedef int s32;
 
-#define MACHINE_ID 6
+#define MACHINE_ID DIGIGRAIN_MACHINE_ID
 /* SRAM, unchanged between OS 1.53 and 1.54 (core's exports cover the rest); the sample table and
  * the two unexported voice tables come from mod.json's cflags for the OS built for */
 #ifndef DIGIGRAIN_VOICE

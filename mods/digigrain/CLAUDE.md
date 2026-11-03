@@ -1,6 +1,6 @@
 # digigrain
 
-Granular SRC machine for the Elektron Digitakt mk1 (OS 1.53 and 1.54, core 3.0 + machine-pages): GRANULAR, machine id 6. Status and open work: GitHub issues
+Granular SRC machine for the Elektron Digitakt mk1 (OS 1.53 and 1.54, core 3.0 + machine-pages): GRANULAR, machine id 10 (6 in 0.0.x). Status and open work: GitHub issues
 labelled `mod:digigrain` (start with the "Tracking" issue). User-facing parameter docs: root `README.md`. Design notes for
 the engine and the machine plumbing: skills `digitakt-dsp` and `digitakt-machines`.
 
