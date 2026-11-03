@@ -1,21 +1,23 @@
 # digigrain collection
 
-Custom firmware mods for the Elektron Digitakt (mk1, OS 1.53), built with
+Custom firmware mods for the Elektron Digitakt (mk1, OS 1.53 and 1.54), built with
 [elekloader](../elekloader). One directory per mod under `mods/`; shared code in `common/`.
 Open work and test status are in the GitHub issue tracker. Design notes for
 contributors and agents are in `.claude/skills/` and each mod's `CLAUDE.md`.
 
 | mod | what |
 |---|---|
-| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 6, GRANULAR), verified in the emulator on the real firmware |
+| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 6, GRANULAR); 0.0.x verified in the emulator on OS 1.53, 0.1.0 (machine-pages, OS 1.54) emulator-checked only as noted in the commit log |
 
 ## Prerequisites
 
 - Python 3.9+ (`.python-version` pins 3.12.0)
 - m68k binutils + gcc: `brew install m68k-elf-gcc m68k-elf-binutils` (scripts
-  set `ELEKLOADER_CROSS=m68k-elf-` automatically)
-- Sibling checkouts: `../elekloader` and the stock `../Digitakt_OS1.53.syx`
-  (override with `ELEKLOADER_DIR`, `ELEKLOADER_STOCK`)
+  set `ELEKLOADER_CROSS=m68k-elf-` automatically), or a container with
+  Debian's `gcc-m68k-linux-gnu` and the repo mounted
+- Sibling checkouts: `../elekloader` (core 3.0+ and its `machine-pages` mod) and
+  the stock OS, by default `../stock/Digitakt_OS1.54_dist.zip` (override with
+  `ELEKLOADER_DIR`, `ELEKLOADER_STOCK`; a 1.53 file builds the 1.53 variant)
 - Optional, for emulator tests: `pip install -r requirements-dev.txt`
 
 ## Quickstart
@@ -70,8 +72,11 @@ startup menu, then send the stock `.syx`. Never commit firmware (`*.syx`,
   capped at 65535 frames (1.37 s).
 - A new GRANULAR track starts with RATE 36 (periodic, about 24 Hz), SPRD 64
   (none), POS 0, RTIO 1.00 and ENV 64 (sine).
-- The RATE and POS labels come from hooks on the page's label lookups (the
-  firmware has too few spare parameter descriptors for unique names).
-- RATE, SPRD and ENV print readable values (Hz / OFF, POS or PIT percent, SINE / GATE / DCAY percent)
-  through hooks on the page's two value-to-text routines.
+- The SRC and LFO pages are drawn by elekloader's `machine-pages` mod from the
+  descriptor in `src/machine.c` (core 3.0): the labels, ranges, defaults and the
+  value texts (RATE in Hz / OFF, SPRD as POS or PIT percent, RTIO as a ratio,
+  ENV as SINE / GATE / DCAY percent). The one site the mod still hooks is the
+  call before the stock voice synth, where the shadow voice's words are set.
+- Knob k is the sound's slot 17 + k. 0.0.x sounds, which kept RATE, SPRD and
+  ENV in other slots, read differently after 0.1.0.
 - Open work (further optimisation, hardware tests) is in the issue tracker.

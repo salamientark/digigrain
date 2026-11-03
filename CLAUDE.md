@@ -1,6 +1,6 @@
 # digigrain collection
 
-Elekloader mods for the Elektron Digitakt mk1 (OS 1.53). One repo, one directory per mod under `mods/`, shared code in
+Elekloader mods for the Elektron Digitakt mk1 (OS 1.53 and 1.54). One repo, one directory per mod under `mods/`, shared code in
 `common/`, shared platform knowledge in the skills in `.claude/skills/`. Open work, what is verified and what is not are
 tracked in GitHub issues (`gh issue list`; start with the "Tracking" issue, one per mod, label `mod:<name>`), not in the repo.
 
@@ -19,7 +19,7 @@ scripts/ tools/ tests/ templates/                                    mod-agnosti
 out/core/  out/<name>/                                               build output (ignored)
 ```
 
-- **Dependencies point one way: `mods/* -> common/`.** Never mod -> mod; a mod's `requires` is only `core`.
+- **Dependencies point one way: `mods/* -> common/`.** Never mod -> mod; a mod's `requires` is only elekloader's platform mods (`core`, `machine-pages`).
   `tools/check_boundaries.py` (part of `make lint`) fails on it. Do not `#include` or list sources from another mod.
 - **Extract to `common/` on the second use**, in its own commit; do not pre-extract. A mod opts in by listing
   `common/src/x.c` in `sources` and writing `#include "common/include/x.h"` (the build stages `common/` beside the mod).
@@ -35,7 +35,7 @@ make build | lint | patch | test | check     # every mod; `make check` is the de
 make check MOD=digigrain                     # one mod only (also build/lint/patch/test)
 make new-mod NAME=<name>                     # scaffold mods/<name> from templates/mod
 ```
-Elemods: `out/<mod>/<mod>-*.elemod` and `out/core/core-2.1.elemod` (load both in elekloader); `out/<mod>/test.syx` is the
+Elemods: `out/<mod>/<mod>-*.elemod` and `out/core/core-*.elemod` and `out/machine-pages/machine-pages-*.elemod` (load all three in elekloader); `out/<mod>/test.syx` is the
 patched firmware. Mod-specific commands (benchmarks, emulator probes) are in `mods/<name>/CLAUDE.md`.
 
 ## Working agreements
@@ -47,4 +47,6 @@ patched firmware. Mod-specific commands (benchmarks, emulator probes) are in `mo
 - Feature branches, conventional commits with the mod as scope (`feat(digigrain): ...`, `refactor(common): ...`), squash
   merge to main; merge only when asked.
 - Verify claims: a build that lints is not a working mod. Prefer emulator measurements; mark anything unverified as such.
-- Sibling checkouts used: `../elekloader` (core 2.1 = main/v0.4.0), `../Digitakt_OS1.53.syx`, `../digiemumac`.
+- Sibling checkouts used: `../elekloader` (core 4.1, machine-pages 1.6), `../stock/Digitakt_OS1.54_dist.zip`,
+  `~/src/digiemu` (emulator). No m68k toolchain on the host: build inside the `m68k-elek` docker image
+  (`docker run --rm --user $(id -u):$(id -g) -v $PWD/..:/w -w /w/digigrain -e HOME=/tmp m68k-elek make check MOD=digigrain`).

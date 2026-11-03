@@ -13,7 +13,7 @@ import os
 import re
 import sys
 
-ALLOWED_REQUIRES = {"core"}
+ALLOWED_REQUIRES = {"core", "machine-pages"}   # elekloader's platform mods
 INC = re.compile(r'^\s*(?:#\s*include\s*"([^"]+)"|\.include\s+"([^"]+)")', re.M)
 
 

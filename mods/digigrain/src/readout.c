@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-/* digigrain: value readouts for the GRANULAR page's RATE, SPRD and ENV knobs (OS 1.53).
+/* digigrain: value readouts for the GRANULAR page's RATE, SPRD and ENV knobs.
  *
- * The SRC page turns a parameter's word into text through 0x400657ee(id, word) (the knob-turn
- * title) and 0x4000f324(obj, id, word, out) (the value under a turning knob); page.s hooks both. Pure functions on caller-supplied memory, so the
+ * machine.c's cm_fmt wrappers call rd_format for the knob-turn title and the value under a
+ * turning knob (machine-pages draws both). Pure functions on caller-supplied memory, so the
  * same code runs on the host (tests/test_readout.py). The mappings mirror granular.c's render:
  * keep them in step (noon = knob value 64, "none" within one step of it).
  *
@@ -15,9 +15,9 @@
  *         the pure gate (100%) reads just "GATE".
  * At most 7 characters: that is what fits under a knob (the value replaces its caption).
  */
-#define RD_SPRD 2         /* descriptor ids: page.s / tools/gen_page_sites.py */
+#define RD_SPRD 2         /* the ids machine.c and the host tests call with (0.0.x's descriptor ids) */
 #define RD_ENV  3
-#define RD_RATE 0x6e      /* BR's descriptor, relabelled */
+#define RD_RATE 0x6e
 
 static char *put_str(char *p, const char *s)
 {

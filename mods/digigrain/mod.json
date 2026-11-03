@@ -1,43 +1,35 @@
 {
  "id": "digigrain",
- "version": "0.0.3",
+ "version": "0.1.0",
  "title": "Digigrain",
  "category": "Machines",
  "author": "lucykowal",
  "license": "GPL-2.0-or-later",
- "description": "Adds a GRANULAR SRC machine (id 6): a granular playback engine. TUNE = speed (pitch and grain length), PLAY = direction, STRT = grain position, DENS = grain rate (noon 0 Hz, periodic CCW, random CW), SHAPE = window (gate to sine to decay), RAND = random pitch/shape/position, LEV = level.",
+ "description": "Adds a GRANULAR SRC machine (id 6): a granular playback engine. TUNE = speed (pitch and grain length), RATE = grain rate (noon off, periodic CCW, random CW), SPRD = random position (CCW) or pitch (CW), POS = grain position, RTIO = grain length as a ratio of the spawn period, ENV = window (gate to sine to decay), LEV = level. Its SRC and LFO pages are drawn by machine-pages (core 3.0), so it shares a build with the other machines made for it.",
  "device": "digitakt-mk1",
  "os": "1.53",
  "sources": [
   "src/granular.c",
   "src/grain.c",
-  "src/machine.s",
+  "src/machine.c",
   "src/synth.s",
-  "src/page.s",
   "src/readout.c"
  ],
- "requires": [
-  "core"
+ "cflags": [
+  "-DDIGIGRAIN_SMP_TAB=0x403193a0"
  ],
- "contribute": [
+ "requires": [
+  "core",
+  "machine-pages"
+ ],
+ "machines": [
   {
-   "to": "core_machines",
-   "order": 50,
-   "data": "00000000",
-   "relocs": [
-    [
-     0,
-     "abs32",
-     "sym:digigrain_granular_machine",
-     0
-    ]
-   ]
+   "id": 6,
+   "descriptor": "digigrain_granular_machine"
   }
  ],
  "resources": {
-  "names": [
-   "machine:6"
-  ]
+  "core": "3.0"
  },
  "sites": [
   {
@@ -45,133 +37,28 @@
    "stock": "4eb940075184",
    "op": "keep2",
    "target": "digigrain_synth_pre"
-  },
-  {
-   "addr": "0x40077fa6",
-   "stock": "4eb9400757fe",
-   "op": "keep2",
-   "target": "digigrain_synth_all"
-  },
-  {
-   "addr": "0x400657cc",
-   "stock": "7203202f0004",
-   "op": "jmp",
-   "target": "digigrain_layout"
-  },
-  {
-   "addr": "0x400a4362",
-   "stock": "47f9401a9d9c45f9401062dc",
-   "op": "jmp",
-   "target": "digigrain_dest_names"
-  },
-  {
-   "addr": "0x40065dc8",
-   "stock": "2c3c401a9d9c",
-   "op": "jmp",
-   "target": "digigrain_dest_icon"
-  },
-  {
-   "addr": "0x4000fe8a",
-   "stock": "222f00080c81000000a4",
-   "op": "jmp",
-   "target": "digigrain_label_short"
-  },
-  {
-   "addr": "0x4000feac",
-   "stock": "222f00080c81000000a4",
-   "op": "jmp",
-   "target": "digigrain_label_long"
-  },
-  {
-   "addr": "0x400657ee",
-   "stock": "222f00040c81000000a4",
-   "op": "jmp",
-   "target": "digigrain_readout"
-  },
-  {
-   "addr": "0x4000f324",
-   "stock": "4fefffec48d70c1c",
-   "op": "jmp",
-   "target": "digigrain_caption"
-  },
-  {
-   "addr": "0x401a9dd0",
-   "stock": "ffffffffffffffff0000000000000000000000000000000100010021ffffffff0000000100000000",
-   "op": "bytes",
-   "new": "0000000600000016000000400000080000000100000000010015ffff000000850000007300000e00"
-  },
-  {
-   "addr": "0x401a9df8",
-   "stock": "401c21e8",
-   "op": "ptr",
-   "target": "digigrain_str_rtio_long"
-  },
-  {
-   "addr": "0x401a9dfc",
-   "stock": "401c5847",
-   "op": "bytes",
-   "new": "401c6afe"
-  },
-  {
-   "addr": "0x401a9e00",
-   "stock": "401c1d2f",
-   "op": "ptr",
-   "target": "digigrain_str_rtio"
-  },
-  {
-   "addr": "0x401a9e04",
-   "stock": "ffffffffffffffff0000000000000000000000000000000100020022ffffffff0000000200000000",
-   "op": "bytes",
-   "new": "00000006000000170000000000007f0000004000000000010016ffff000000860000007400000e00"
-  },
-  {
-   "addr": "0x401a9e2c",
-   "stock": "401c21e8",
-   "op": "ptr",
-   "target": "digigrain_str_sprd_long"
-  },
-  {
-   "addr": "0x401a9e30",
-   "stock": "401c5847",
-   "op": "bytes",
-   "new": "401c6afe"
-  },
-  {
-   "addr": "0x401a9e34",
-   "stock": "401c1d2f",
-   "op": "ptr",
-   "target": "digigrain_str_sprd"
-  },
-  {
-   "addr": "0x401a9e38",
-   "stock": "ffffffffffffffff0000000000000000000000000000000100060026ffffffff0000000300000000",
-   "op": "bytes",
-   "new": "00000006000000120000000000007f0000004000000000010011ffff000000810000006f00000e00"
-  },
-  {
-   "addr": "0x401a9e60",
-   "stock": "401c21e8",
-   "op": "ptr",
-   "target": "digigrain_str_env_long"
-  },
-  {
-   "addr": "0x401a9e64",
-   "stock": "401c5847",
-   "op": "bytes",
-   "new": "401c6afe"
-  },
-  {
-   "addr": "0x401a9e68",
-   "stock": "401c1d2f",
-   "op": "ptr",
-   "target": "digigrain_str_env"
   }
  ],
  "subscribe": [
   {
-   "event": "ev_tick",
-   "fn": "digigrain_granular_tick",
-   "order": 50
+   "event": "ev_render_voices",
+   "fn": "digigrain_granular_render",
+   "order": 20
   }
- ]
+ ],
+ "ports": {
+  "1.54": {
+   "cflags": [
+    "-DDIGIGRAIN_SMP_TAB=0x4031a3a0"
+   ],
+   "sites": [
+    {
+     "addr": "0x40077f8e",
+     "stock": "4eb940075184",
+     "op": "keep2",
+     "target": "digigrain_synth_pre"
+    }
+   ]
+  }
+ }
 }

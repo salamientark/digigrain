@@ -1,30 +1,32 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-/* digigrain: the GRANULAR machine's voice renderer (Digitakt mk1 OS 1.53).
+/* digigrain: the GRANULAR machine's voice renderer (Digitakt mk1, core 3.0 + machine-pages).
  *
  * The machine plays as ONESHOT, so the stock voice (the "shadow") still runs: it gives us
  * note on/off, the sample slot and the pitch (V+4's per-block advance, which includes TUNE and
  * the note); everything after the synth (filter, amp, pan, level, FX) works on the block we
- * write. synth.s calls digigrain_granular_pre() before the stock synth and
- * digigrain_granular_render() after it. The latter overwrites the 32 x int32 block at
- * 0x80001a18 + 128 * v of every GRANULAR voice.
+ * write. synth.s calls digigrain_granular_pre() before the stock synth; machine-pages'
+ * ev_render_voices calls digigrain_granular_render() after playback has written every track's
+ * block, which overwrites the 32 x int32 block of every GRANULAR voice.
  *
- * Controls (the SRC page's eight knobs; words of the voice's parameter block, see page.s):
+ * Controls (the SRC page's eight knobs, drawn by machine-pages from machine.c; knob k is the
+ * sound's slot 17 + k, ONESHOT's parameters):
  *   A TUNE  pitch of the grains (through the shadow voice); independent of grain length
  *   B RATE  grain spawn rate: noon = no grains; counter-clockwise = periodic (0.25 - 120 Hz),
- *           clockwise = random intervals with the same mean rates      (word 19, BR's)
+ *           clockwise = random intervals with the same mean rates      (slot 18, PLAY's)
  *   C SPRD  random variation, none at noon; counter-clockwise randomises POS, clockwise
- *           randomises the grains' TUNE                                 (word 23, LOOP's)
+ *           randomises the grains' TUNE                                 (slot 19, BR's)
  *   D SAMP  sample (shadow voice)
- *   E POS   position where grains start (fixed; sweep it to scan)      (word 21, STRT's)
- *   F RTIO  grain length as a ratio of the spawn period, 0.25 .. 8.00  (word 22, LEN's)
+ *   E POS   position where grains start (fixed; sweep it to scan)      (slot 21, STRT's)
+ *   F RTIO  grain length as a ratio of the spawn period, 0.25 .. 8.00  (slot 22, LEN's)
  *   G ENV   grain envelope: noon = sine, counter-clockwise -> gate, clockwise -> quick decay
- *                                                                       (word 18, PLAY's)
- *   H LEV   level (the stock law: gain = (LEV / 100)^2)                 (word 24)
+ *                                                                       (slot 23, LOOP's)
+ *   H LEV   level (the stock law: gain = (LEV / 100)^2)                 (slot 24)
  * Grain length = RTIO x spawn period, so a periodic voice never has more than ceil(RTIO) <= 8
  * grains alive, whatever the pitch. The stock PLAY, STRT, LEN and LOOP words would otherwise
  * decide the shadow voice's window, so pre() neutralises them for GRANULAR voices: the whole
  * sample, forward, looping (FWD.L), so a held note sustains until the amp envelope ends.
  */
+#include "digitakt-mk1/core3.h"
 #include "grain.h"
 
 typedef unsigned char u8;
@@ -33,31 +35,45 @@ typedef unsigned int u32;
 typedef int s32;
 
 #define MACHINE_ID 6
-#define BLOCKS     0x80001a18u            /* 8 voice blocks of 32 x s32, 128 bytes apart */
-#define VOICE(v)   (0x8000edc4u + 94u * (v))
-#define SMOOTHED(v) (0x80002772u + 106u * (v)) /* what the synth reads; word s at +2 s */
-#define EXPANDED(v) (0x80002b50u + 212u * (v)) /* 32-bit copy (value << 16), word s at +4 s */
-#define TRIGMASK   0x80001228u            /* bit v: voice v starts this block */
-#define SMP_TAB    0x403193a0u            /* 16 bytes a slot: PCM ptr, u16, length, ratio */
+/* SRAM, unchanged between OS 1.53 and 1.54 (core's exports cover the rest); the sample table and
+ * the two unexported voice tables come from mod.json's cflags for the OS built for */
+#ifndef DIGIGRAIN_VOICE
+#define DIGIGRAIN_VOICE    0x8000edc4u
+#endif
+#ifndef DIGIGRAIN_EXPANDED
+#define DIGIGRAIN_EXPANDED 0x80002b50u
+#endif
+#ifndef DIGIGRAIN_SMP_TAB
+#error "DIGIGRAIN_SMP_TAB: the sample table's address for this OS (mod.json cflags)"
+#endif
+#define VOICE(v)   (DIGIGRAIN_VOICE + 94u * (v))
+#define EXPANDED(v) (DIGIGRAIN_EXPANDED + 212u * (v)) /* 32-bit copy (value << 16), slot s at +4 s */
+#define SMP_TAB    DIGIGRAIN_SMP_TAB      /* 16 bytes a slot: PCM ptr, u16, length, ratio */
 #define GAIN       25916                  /* measured: stock block = s16 * 25916 at LEV 100 */
 #define RATE_Q16_PER_DELTA 2048           /* V+4 advance per block (32 = unity) -> Q16 rate */
 
-/* parameter word indices (53-word block): what each SRC-page knob edits (page.s lays them out) */
-#define W_ENV   18        /* G: ENV (descriptor 3, on PLAY's word) */
-#define W_RATE  19        /* B: RATE (BR's descriptor, relabelled) */
-#define W_POS   21        /* E: POS (STRT's descriptor, relabelled) */
-#define W_RTIO  22        /* F: RTIO (descriptor 1, on LEN's word), 8.8: 0x40 .. 0x800 */
-#define W_SPRD  23        /* C: SPRD (descriptor 2, on LOOP's word) */
-#define W_LEV   24        /* H: LEV */
-#define W_PLAY  W_ENV     /* the shadow synth reads PLAY from this word */
+/* the smoothed parameter words the synth reads: slot s of voice v (fw_voice_params is slot 17 on) */
+#define SMOOTHED(v) (&fw_voice_params[53 * (v) - 17])
 
-extern volatile unsigned char core_track_machine[8]; /* core 2.1: each track's machine */
+/* parameter slots (53-word block): what each SRC-page knob edits (machine.c lays them out) */
+#define W_RATE  18        /* B: RATE (PLAY's slot) */
+#define W_SPRD  19        /* C: SPRD (BR's slot) */
+#define W_POS   21        /* E: POS (STRT's slot) */
+#define W_RTIO  22        /* F: RTIO (LEN's slot), 8.8: 0x40 .. 0x800 */
+#define W_ENV   23        /* G: ENV (LOOP's slot) */
+#define W_LEV   24        /* H: LEV */
+#define W_FIRST W_RATE    /* the words live[] carries: W_FIRST .. W_LEV */
+/* the shadow synth's own meaning of those slots (the stock ONESHOT parameters) */
+#define S_PLAY  18
+#define S_STRT  21
+#define S_LEN   22
+#define S_LOOP  23
 
 /* The words GRANULAR reads, as the stock voice saw them after smoothing and the LFOs: the knob values
- * (engine copy 0x80001502 + 106 v) carry no modulation. Word s is live[v][s - W_ENV]. pre() copies them out before it
- * neutralises the shadow's words; they are put back after the synth (the smoothing stage slews each
+ * (engine copy) carry no modulation. Slot s is live[v][s - W_FIRST]. pre() copies them out before it
+ * neutralises the shadow's words; they are put back after the render (the smoothing stage slews each
  * word from its previous value, so leaving the neutral values would corrupt that state). */
-static u16 live[8][W_LEV - W_ENV + 1];
+static u16 live[8][W_LEV - W_FIRST + 1];
 
 static gvoice_t gv[8];
 static struct {
@@ -69,31 +85,11 @@ static struct {
 
 /* The shadow's neutral words: STRT, LEN and LOOP = the full sample, PLAY = FWD.L (loops, so the voice
  * outlives the sample). Slots to override, the value in the smoothed copy (the 32-bit one is value << 16). */
-static const u8 shadow_slot[4] = {W_POS, W_RTIO, W_SPRD, W_PLAY};
+static const u8 shadow_slot[4] = {S_STRT, S_LEN, S_LOOP, S_PLAY};
 static const u16 shadow_val[4] = {0, 0x7f00, 0, 0x0200};
 static u16 saved_sm[8][4];
 static u32 saved_ex[8][4];
 static u8 shadowed[8];                /* pre() ran for this voice this block */
-
-/* Before the stock synth: GRANULAR voices get a whole-sample, forward, looping shadow. */
-void digigrain_granular_pre(void)
-{
-    int v, i;
-    for (v = 0; v < 8; v++)
-        if (core_track_machine[v] == MACHINE_ID) {
-            volatile u16 *sm = (volatile u16 *)SMOOTHED(v);
-            volatile u32 *ex = (volatile u32 *)EXPANDED(v);
-            for (i = 0; i < W_LEV - W_ENV + 1; i++)
-                live[v][i] = sm[W_ENV + i];
-            for (i = 0; i < 4; i++) {
-                saved_sm[v][i] = sm[shadow_slot[i]];
-                saved_ex[v][i] = ex[shadow_slot[i]];
-                sm[shadow_slot[i]] = shadow_val[i];
-                ex[shadow_slot[i]] = (u32)shadow_val[i] << 16;
-            }
-            shadowed[v] = 1;
-        }
-}
 
 /* After the synth: give the stock smoothing its own words back. */
 static void unshadow(int v)
@@ -106,6 +102,28 @@ static void unshadow(int v)
         ex[shadow_slot[i]] = saved_ex[v][i];
     }
     shadowed[v] = 0;
+}
+
+/* Before the stock synth: GRANULAR voices get a whole-sample, forward, looping shadow. */
+void digigrain_granular_pre(void)
+{
+    int v, i;
+    for (v = 0; v < 8; v++)
+        if (core_track_machine[v] == MACHINE_ID) {
+            volatile u16 *sm = (volatile u16 *)SMOOTHED(v);
+            volatile u32 *ex = (volatile u32 *)EXPANDED(v);
+            if (shadowed[v])              /* the render event did not run last block */
+                unshadow(v);
+            for (i = 0; i < W_LEV - W_FIRST + 1; i++)
+                live[v][i] = sm[W_FIRST + i];
+            for (i = 0; i < 4; i++) {
+                saved_sm[v][i] = sm[shadow_slot[i]];
+                saved_ex[v][i] = ex[shadow_slot[i]];
+                sm[shadow_slot[i]] = shadow_val[i];
+                ex[shadow_slot[i]] = (u32)shadow_val[i] << 16;
+            }
+            shadowed[v] = 1;
+        }
 }
 
 /* A 0..127 knob with noon at 64 -> side (-1 CCW, 0 none, +1 CW) and amount 0..64 */
@@ -122,11 +140,10 @@ static int noon_side(int v, int *amount)
     return k < 0 ? -1 : 1;
 }
 
-static void render_voice(int v)
+static void render_voice(int v, s32 *blk)
 {
     u32 vs = VOICE(v);
-    const u16 *w = live[v] - W_ENV;       /* w[W_ENV..W_LEV]: with the LFOs applied */
-    volatile s32 *blk = (volatile s32 *)(BLOCKS + 128u * v);
+    const u16 *w = live[v] - W_FIRST;     /* w[W_FIRST..W_LEV]: with the LFOs applied */
     int on, lev, f, len, g, side, amount, kk, pp, out[GR_FRAMES];
     u32 slot, ent, hz16;
     const short *pcm;
@@ -138,7 +155,7 @@ static void render_voice(int v)
         return;
     }
     on = *(volatile u8 *)(vs + 0x28);
-    if (!st[v].init || ((*(volatile u32 *)TRIGMASK >> v) & 1)) {
+    if (!st[v].init || ((fw_voice_start >> v) & 1)) {
         gr_reset(&gv[v], 0x1234567u + (u32)v * 0x9e3779b9u);
         st[v].have_prev = 0;
         st[v].rate = 65536;
@@ -192,51 +209,13 @@ static void render_voice(int v)
         blk[f] = out[f] * g;
 }
 
-/* After the stock synth filled every voice's block. */
-void digigrain_granular_render(void)
+/* ev_render_voices (machine-pages, order 20): after the stock synth filled every track's block. */
+void digigrain_granular_render(int32_t *blocks)
 {
     int v;
     for (v = 0; v < 8; v++) {
-        render_voice(v);
+        render_voice(v, blocks + 32 * v);
         if (shadowed[v])
             unshadow(v);
     }
-}
-
-/* ev_tick (30 Hz, UI task): when a track newly becomes GRANULAR and its knobs hold the stock
- * defaults of the machine it borrows its parameters from (PLAY FWD, BR 0, STRT 0, LEN 120,
- * LOOP 0), give it sensible granular defaults. The UI kit changes with the pattern, so a kit
- * switch only re-reads the machine bytes. */
-#define UI_KIT      0x4199dc44u           /* pointer to the current pattern's kit */
-#define SOUND(k, t) ((k) + 0x20u + 0xa2u * (t))
-#define SND_MACHINE 0x7e
-#define SND_PARAMS  0x14                  /* 53 words; word s at +2 s */
-
-static u32 seen_kit;
-static u8 seen_machine[8];
-
-void digigrain_granular_tick(void *ctrl)
-{
-    u32 kit = *(volatile u32 *)UI_KIT;
-    int t;
-    (void)ctrl;
-    if (!kit)
-        return;
-    for (t = 0; t < 8; t++) {
-        u32 snd = SOUND(kit, t);
-        u8 m = *(volatile u8 *)(snd + SND_MACHINE);
-        if (kit == seen_kit && m == MACHINE_ID && seen_machine[t] != MACHINE_ID) {
-            volatile u16 *w = (volatile u16 *)(snd + SND_PARAMS);
-            if (w[W_ENV] == 0x0300 && w[W_RATE] == 0 && w[W_POS] == 0 && w[W_RTIO] == 0x7800 &&
-                w[W_SPRD] == 0) {
-                w[W_ENV] = 64 << 8;       /* sine */
-                w[W_RATE] = 36 << 8;      /* periodic, ~24 Hz */
-                w[W_POS] = 0;
-                w[W_RTIO] = 0x0100;       /* 1:1 */
-                w[W_SPRD] = 64 << 8;      /* no spread */
-            }
-        }
-        seen_machine[t] = m;
-    }
-    seen_kit = kit;
 }

@@ -3,9 +3,9 @@ name: digitakt-workflow
 description: Build, lint, patch and flash a Digitakt mk1 (OS 1.53) mod with elekloader; toolchain, repo scripts, recovery. Use when setting up, building or shipping a mod.
 ---
 
-# Digitakt mod workflow (elekloader, mk1 OS 1.53)
+# Digitakt mod workflow (elekloader, mk1 OS 1.53 / 1.54)
 
-Only Digitakt mk1 OS 1.53 supports linkable (format 2) mods. Sibling checkouts used here: `../elekloader`, `../Digitakt_OS1.53.syx` (never commit it).
+Digitakt mk1 OS 1.53 and 1.54 support linkable (format 2) mods (a mod's `ports.1.54` carries what differs). Sibling checkouts used here: `../elekloader` (core, machine-pages), the stock OS under `../stock/` (never commit it).
 
 ## Repo commands (this repo)
 ```

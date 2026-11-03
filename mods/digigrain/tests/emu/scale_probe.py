@@ -159,7 +159,7 @@ def spin(m, pc, *args, **kw):
         if MAP:
             state["calls"] = {}
             if os.environ.get("MEASURE"):     # instructions per digigrain_granular_render call, steps 2400-2440
-                lo = MAP["digigrain_synth_all"]
+                lo = MAP["digigrain_synth_all"]   # 0.0.x builds only: 0.1.0 renders from ev_render_voices
                 ret = lo + 36                  # the instruction after `jsr digigrain_granular_render` (5 arg copies 20 + jsr 6 + lea 4 + jsr 6)
                 span = (0x47be0000, 0x47be4000)
                 cnt = {"inside": False, "n": 0, "calls": []}
@@ -199,7 +199,7 @@ def spin(m, pc, *args, **kw):
                 uc.hook_add(UC_HOOK_CODE, pre_dump, begin=MAP["digigrain_granular_pre"], end=MAP["digigrain_granular_pre"])
             if "gr_block" in MAP:
                 uc.hook_add(UC_HOOK_CODE, at_block, begin=MAP["gr_block"], end=MAP["gr_block"])
-            for name in ("digigrain_synth_all", "digigrain_granular_render", "digigrain_granular_machine"):
+            for name in ("digigrain_synth_pre", "digigrain_granular_render", "digigrain_granular_machine"):
                 if name in MAP:
                     uc.hook_add(UC_HOOK_CODE, (lambda nm: lambda u, a, s, d: state["calls"].__setitem__(nm, state["calls"].get(nm, 0) + 1))(name),
                                 begin=MAP[name], end=MAP[name])

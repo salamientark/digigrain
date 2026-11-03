@@ -1,14 +1,15 @@
 # digigrain
 
-Granular SRC machine for the Elektron Digitakt mk1 (OS 1.53): GRANULAR, machine id 6. Status and open work: GitHub issues
+Granular SRC machine for the Elektron Digitakt mk1 (OS 1.53 and 1.54, core 3.0 + machine-pages): GRANULAR, machine id 6. Status and open work: GitHub issues
 labelled `mod:digigrain` (start with the "Tracking" issue). User-facing parameter docs: root `README.md`. Design notes for
 the engine and the machine plumbing: skills `digitakt-dsp` and `digitakt-machines`.
 
 ## Layout
 
-- `src/grain.c|h` pure fixed-point engine; `granular.c` firmware glue; `synth.s` render hooks; `page.s` SRC page layout
-  and label hooks; `readout.c` value readouts; `machine.s` machine descriptor; `tables.h` generated.
-- `tools/gen_tables.py` -> `src/tables.h`; `tools/gen_page_sites.py` -> descriptor and label-hook sites in `mod.json`.
+- `src/grain.c|h` pure fixed-point engine; `granular.c` firmware glue; `synth.s` the pre-synth hook (the one site);
+  `machine.c` machine descriptor and its SRC page (machine-pages draws it; knob k = slot 17 + k); `readout.c` value
+  readouts; `tables.h` generated. The render runs on machine-pages' `ev_render_voices`.
+- `tools/gen_tables.py` -> `src/tables.h`. `mod.json` `ports.1.54` carries the 1.54 sample-table address (`DIGIGRAIN_SMP_TAB`).
 - `tests/` host tests (`test_grain.py` bit-exact vs a Python model, `test_readout.py`); `tests/emu/` digiemu probes.
 
 ## Commands (run from the repo root)
