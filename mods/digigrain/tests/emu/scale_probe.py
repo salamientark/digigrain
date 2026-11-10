@@ -58,6 +58,7 @@ if os.environ.get("GRANULAR"):        # symbol addresses of our build, from elek
     _st = _syx.Syx.load(os.environ.get("ELEKLOADER_STOCK", os.path.join(ROOT, "..", "Digitakt_OS1.53.syx")))
     _d, _r = _dev.identify(_st.sha256)
     _mods = [glob.glob(os.path.join(ROOT, "out", "core", "core-*.elemod"))[0],
+             glob.glob(os.path.join(ROOT, "out", "machine-pages", "machine-pages-*.elemod"))[0],   # digigrain 0.1.0 requires it
              glob.glob(os.path.join(OUT_MOD, "digigrain-*.elemod"))[0]]
     MAP = _link.link([_em.load_any(m) for m in _mods], _st.section(_d.main_section)).map
 import emu.gui as G  # noqa: E402
