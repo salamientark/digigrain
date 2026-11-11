@@ -8,11 +8,12 @@ export ELEKLOADER_STOCK="${ELEKLOADER_STOCK:-${DIGITAKT_OS:-$ROOT/../Digitakt_OS
 if ! command -v m68k-linux-gnu-gcc >/dev/null 2>&1 && command -v m68k-elf-gcc >/dev/null 2>&1; then
   export ELEKLOADER_CROSS="${ELEKLOADER_CROSS:-m68k-elf-}"
 fi
-OUT="$ROOT/out"
+OUT="${BUILD_OUT:-$ROOT/out}"                   # BUILD_OUT: another output root (check.sh's 1.54 pass)
 CORE_DIR="$ELEKLOADER_DIR/mods/core"
 PAGES_DIR="$ELEKLOADER_DIR/mods/machine-pages"
 PY="${PYTHON:-python3}"
 [ -f "$ELEKLOADER_STOCK" ] || { echo "stock OS not found: $ELEKLOADER_STOCK (set ELEKLOADER_STOCK)" >&2; exit 2; }
+[ -d "$PAGES_DIR" ] || { echo "machine-pages not found in $ELEKLOADER_DIR (needs elekloader core 3.0+; set ELEKLOADER_DIR)" >&2; exit 2; }
 if [ -n "${MOD:-}" ]; then
   [ -f "$ROOT/mods/$MOD/mod.json" ] || { echo "no such mod: $MOD (see mods/)" >&2; exit 2; }
   MODS="$MOD"

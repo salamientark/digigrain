@@ -80,6 +80,13 @@ class Boundaries(unittest.TestCase):
             self.tree(tmp, a_json={"id": "a", "sources": ["src/a.c"], "requires": ["core", "b"]})
             self.assertTrue(any("requires 'b'" in e for e in self.errs(tmp, "a")))
 
+    def test_requires_platform_mods(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.tree(tmp, a_json={"id": "a", "sources": ["src/a.c"], "requires": ["core", "machine-pages"]})
+            self.assertEqual(self.errs(tmp, "a"), [])
+            self.tree(tmp, a_json={"id": "a", "sources": ["src/a.c"], "requires": ["core", "machine-pagez"]})
+            self.assertTrue(any("requires 'machine-pagez'" in e for e in self.errs(tmp, "a")))
+
     def test_include_of_other_mod(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.tree(tmp, a_src='#include "../../b/src/b.c"\n')
@@ -108,14 +115,14 @@ class Stage(unittest.TestCase):
 class Build(unittest.TestCase):
     def env(self):
         if not os.path.isfile(STOCK):
-            self.skipTest("stock OS not found: %s" % STOCK)
+            self.skipTest("stock OS not found: %s (set ELEKLOADER_STOCK)" % STOCK)
         env = dict(os.environ, ELEKLOADER_STOCK=STOCK,
                    PYTHONPATH=ELEKLOADER + os.pathsep + os.environ.get("PYTHONPATH", ""))
         if not (shutil.which("m68k-linux-gnu-gcc") or "ELEKLOADER_CROSS" in env):
             if shutil.which("m68k-elf-gcc"):
                 env["ELEKLOADER_CROSS"] = "m68k-elf-"
             else:
-                self.skipTest("no m68k cross toolchain")
+                self.skipTest("no m68k cross toolchain (m68k-linux-gnu-gcc or m68k-elf-gcc not on PATH)")
         return env
 
     def test_every_mod_builds(self):

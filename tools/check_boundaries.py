@@ -2,7 +2,7 @@
 """Enforce the dependency rule: mods -> common, never mod -> mod.
 
 For every mods/<name>/ (or just the named ones) it checks that
-  - `requires` in mod.json is only the platform mod ("core"): no mod depends on another mod;
+  - `requires` in mod.json is only the platform mods ("core", "machine-pages"): no mod depends on another mod;
   - every `sources` entry stays in the mod's own src/ or in common/src/ (after normalising);
   - every quoted #include / .include in the mod's src/ that resolves to a file stays in the mod or common/;
   - no source text names another mod's directory (`mods/<other>`).
