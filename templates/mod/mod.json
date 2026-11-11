@@ -13,6 +13,9 @@
  "requires": [
   "core"
  ],
+ "ports": {
+  "1.54": {}
+ },
  "subscribe": [
   {
    "event": "ev_tick",

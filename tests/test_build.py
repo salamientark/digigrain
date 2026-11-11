@@ -148,7 +148,7 @@ class Build(unittest.TestCase):
             with open(os.path.join(mdir, "mod.json"), "w") as f:
                 json.dump({"id": "probe", "version": "0.0.1", "title": "probe", "category": "Examples",
                            "license": "GPL-2.0-or-later", "description": "probe", "device": "digitakt-mk1",
-                           "os": "1.53", "sources": ["src/probe.c", "common/src/k.c"], "requires": ["core"],
+                           "os": "1.53", "sources": ["src/probe.c", "common/src/k.c"], "requires": ["core"], "ports": {"1.54": {}},
                            "subscribe": [{"event": "ev_tick", "fn": "probe_tick", "order": 50}]}, f)
             self.assertEqual(check_boundaries.main(["--root", root]), 0)
             st = stage_mod.stage(root, "probe", os.path.join(tmp, "stage"))
