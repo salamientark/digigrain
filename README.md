@@ -16,8 +16,8 @@ contributors and agents are in `.claude/skills/` and each mod's `CLAUDE.md`.
   set `ELEKLOADER_CROSS=m68k-elf-` automatically), or a container with
   Debian's `gcc-m68k-linux-gnu` and the repo mounted
 - Sibling checkouts: `../elekloader` (core 3.0+ and its `machine-pages` mod) and
-  the stock OS, by default `../stock/Digitakt_OS1.54_dist.zip` (override with
-  `ELEKLOADER_DIR`, `ELEKLOADER_STOCK`; a 1.53 file builds the 1.53 variant)
+  the stock `../Digitakt_OS1.53.syx` (override with `ELEKLOADER_DIR`,
+  `ELEKLOADER_STOCK`; a 1.54 stock file builds the 1.54 variant)
 - Optional, for emulator tests: `pip install -r requirements-dev.txt`
 
 ## Quickstart

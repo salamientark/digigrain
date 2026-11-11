@@ -47,6 +47,5 @@ patched firmware. Mod-specific commands (benchmarks, emulator probes) are in `mo
 - Feature branches, conventional commits with the mod as scope (`feat(digigrain): ...`, `refactor(common): ...`), squash
   merge to main; merge only when asked.
 - Verify claims: a build that lints is not a working mod. Prefer emulator measurements; mark anything unverified as such.
-- Sibling checkouts used: `../elekloader` (core 4.1, machine-pages 1.6), `../stock/Digitakt_OS1.54_dist.zip`,
-  `~/src/digiemu` (emulator). No m68k toolchain on the host: build inside the `m68k-elek` docker image
-  (`docker run --rm --user $(id -u):$(id -g) -v $PWD/..:/w -w /w/digigrain -e HOME=/tmp m68k-elek make check MOD=digigrain`).
+- Sibling checkouts used: `../elekloader` (core 3.0+ and machine-pages), `../Digitakt_OS1.53.syx` (`ELEKLOADER_STOCK`
+  picks another, such as a 1.54 file), `../digiemumac`.
