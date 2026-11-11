@@ -47,8 +47,12 @@ static int32_t gfx_rtio(int32_t v)
 
 /* A track turns to GRANULAR (machine-pages, the UI task): the stock switch wrote ONESHOT's defaults
  * (PLAY FWD, BR 0, STRT 0, LEN 120, LOOP 0) into the sound, and a cm_ui_v3 page's def is not applied
- * there. If the words still hold those, give the track sensible granular defaults; a sound saved
- * with exactly those values is re-defaulted once (0.0.x's tick handler did the same). */
+ * there. Still a heuristic (issue #8, open): on_switch says the machine changed, not that the stock
+ * reset ran just before, so the words are checked and a sound that does not hold exactly ONESHOT's
+ * defaults (e.g. a saved GRANULAR sound arriving by any route that changes the machine) is left alone.
+ * The false positive (a GRANULAR sound re-defaulted) needs RTIO = 0x7800, outside RTIO_MIN..RTIO_MAX,
+ * so the page cannot produce it; only a write that bypasses the page could. Unverified: whether
+ * GRANULAR -> ONESHOT re-resets, else ONESHOT keeps PLAY = DEF_RATE, LEN = DEF_RTIO etc. */
 #define DEF_RATE (36 << 8)                  /* periodic, ~24 Hz */
 #define DEF_SPRD (64 << 8)                  /* none */
 #define DEF_POS  0

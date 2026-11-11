@@ -36,8 +36,9 @@ typedef unsigned int u32;
 typedef int s32;
 
 #define MACHINE_ID DIGIGRAIN_MACHINE_ID
-/* SRAM, unchanged between OS 1.53 and 1.54 (core's exports cover the rest); the sample table and
- * the two unexported voice tables come from mod.json's cflags for the OS built for */
+/* only the sample table differs per OS: mod.json passes -DDIGIGRAIN_SMP_TAB (top level for 1.53, ports."1.54" for 1.54).
+ * The two unexported voice tables are in-source defaults (a cflag may override them); SRAM, assumed unchanged
+ * between OS 1.53 and 1.54 (core's exports cover the rest), which no test in this repo checks */
 #ifndef DIGIGRAIN_VOICE
 #define DIGIGRAIN_VOICE    0x8000edc4u
 #endif
@@ -54,7 +55,8 @@ typedef int s32;
 #define RATE_Q16_PER_DELTA 2048           /* V+4 advance per block (32 = unity) -> Q16 rate */
 
 /* the smoothed parameter words the synth reads: slot s of voice v (fw_voice_params is slot 17 on) */
-#define SMOOTHED(v) (&fw_voice_params[53 * (v) - 17])
+/* base via integer arithmetic: for v = 0 the address is 17 words before the array, which is UB as pointer arithmetic */
+#define SMOOTHED(v) ((void *)((__UINTPTR_TYPE__)fw_voice_params + (53 * (v) - 17) * sizeof(fw_voice_params[0])))
 
 /* parameter slots (53-word block): what each SRC-page knob edits (machine.c lays them out) */
 #define W_RATE  18        /* B: RATE (PLAY's slot) */
@@ -141,7 +143,7 @@ static int noon_side(int v, int *amount)
     return k < 0 ? -1 : 1;
 }
 
-static void render_voice(int v, s32 *blk)
+static void render_voice(int v, int32_t *blk)
 {
     u32 vs = VOICE(v);
     const u16 *w = live[v] - W_FIRST;     /* w[W_FIRST..W_LEV]: with the LFOs applied */
