@@ -4,7 +4,8 @@
 Needs a firmware home whose +Drive holds /incoming/sine440 (a 48 kHz mono s16 sine,
 peak 16384; see out/digigrain/emu in this repo's notes): it loads that sample on track 1 through the
 sample browser, plays it with trig key 1 and, after the voice
-synth calls in the render ISR (0x40077fac), reads the per-voice mono blocks at
+synth calls in the render ISR (0x40077fac; with GRANULAR=1 at 0x40077fc8, the filter call, so after
+machine-pages' ev_render_voices at 0x40077fba has run digigrain_granular_render), reads the per-voice mono blocks at
 0x80001a18 + 128 * v (32 x int32, big endian). It prints each block's peak and
 the matching source PCM peak from the sample table, so the Q31-vs-s16 scale of
 a block can be read off.
@@ -13,10 +14,13 @@ a block can be read off.
     GRANULAR=1 FW_DIR=out/digigrain/emu/home/firmware/<our build> uv run ... scale_probe.py   # our build:
         switches track 1 to GRANULAR first and reports the grain output levels and audio
 
-Env: DIGIEMU (default ../digiemumac), FW_DIR (firmware folder), SHOTS (dir for debug PNGs),
+Env: DIGIEMU (default ../digiemumac), FW_DIR (firmware folder), SHOTS (dir for debug PNGs), PROBE_AT (hex read address),
 POKE="slot:value,..." (track 1's param words; value = 0..127 knob value, or "0xHHHH" for a raw word).
-Slots on GRANULAR: 17 TUNE (centre 16384), 18 ENV, 19 RATE, 21 POS (0..120), 22 RTIO (raw 8.8:
-0x0040..0x0800), 23 SPRD, 24 LEV; ENV/RATE/SPRD are 0..127 with noon 64.
+Slots on GRANULAR: 17 TUNE (centre 16384), 18 RATE, 19 SPRD, 21 POS (0..120), 22 RTIO (raw 8.8:
+0x0040..0x0800), 23 ENV, 24 LEV; RATE/SPRD/ENV are 0..127 with noon 64.
+OS: the sample table differs (1.53 0x403193a0, 1.54 0x4031a3a0); it is picked from the FW_DIR name
+("-1.53-"/"-1.54-") or SMP_TAB=0x...; the other addresses here are 1.53 measurements (unverified on 1.54).
+With GRANULAR=1, ELEKLOADER_STOCK must be the same OS as the firmware in FW_DIR (not checked here).
 """
 import os
 import struct
@@ -30,8 +34,19 @@ DIGIEMU = os.path.abspath(os.environ.get("DIGIEMU", os.path.join(ROOT, "..", "di
 FW = os.environ.get("FW_DIR") or os.path.join(DIGIEMU, "portable", "firmware", "dt1-1.53-9bdd44bb")
 GAIN_UNIT = 25916                # stock block = s16 x GAIN_UNIT (measured)
 AFTER_SYNTH = 0x40077fac          # after both voice-synth calls, before filter/mix
+AFTER_RENDER = 0x40077fc8         # the filter call 0x40072478: after ev_render_voices (0x40077fba), where 0.1.0 renders grains
+PROBE_AT = int(os.environ["PROBE_AT"], 16) if os.environ.get("PROBE_AT") else (AFTER_RENDER if os.environ.get("GRANULAR") else AFTER_SYNTH)
 BLOCKS = 0x80001a18               # 8 voice blocks, 128 bytes each
-SMP_TAB = 0x403193a0              # 16 bytes a slot: PCM ptr, u16, length, ratio
+SMP_TABS = {"1.53": 0x403193a0, "1.54": 0x4031a3a0}    # 16 bytes a slot: PCM ptr, u16, length, ratio (mod.json DIGIGRAIN_SMP_TAB)
+_os = next((v for v in SMP_TABS if "-%s-" % v in os.path.basename(os.path.normpath(FW))), None)
+if os.environ.get("SMP_TAB"):
+    SMP_TAB = int(os.environ["SMP_TAB"], 16)
+elif _os:
+    SMP_TAB = SMP_TABS[_os]
+else:
+    SMP_TAB = SMP_TABS["1.53"]
+    print("WARNING: no OS version in FW_DIR name %r; assuming 1.53 (SMP_TAB=0x%x). Set SMP_TAB=0x... for 1.54." % (FW, SMP_TAB),
+          file=sys.stderr)
 VOICE = 0x8000edc4                # V(v) = VOICE + 94 * v
 
 sys.path.insert(0, DIGIEMU)
@@ -156,27 +171,30 @@ def spin(m, pc, *args, **kw):
     uc = m.uc
     n = state["n"]
     if n == 0:
-        uc.hook_add(UC_HOOK_CODE, probe, begin=AFTER_SYNTH, end=AFTER_SYNTH)
+        uc.hook_add(UC_HOOK_CODE, probe, begin=PROBE_AT, end=PROBE_AT)
         if MAP:
             state["calls"] = {}
             if os.environ.get("MEASURE"):     # instructions per digigrain_granular_render call, steps 2400-2440
-                lo = MAP["digigrain_synth_all"]   # 0.0.x builds only: 0.1.0 renders from ev_render_voices
-                ret = lo + 36                  # the instruction after `jsr digigrain_granular_render` (5 arg copies 20 + jsr 6 + lea 4 + jsr 6)
+                # 0.1.0: machine-pages' ev_render_voices calls it, so its return site is not in our MAP; the call
+                # ends when the stack pointer rises above its entry value (the rts popped), or at the probe point.
                 span = (0x47be0000, 0x47be4000)
-                cnt = {"inside": False, "n": 0, "calls": []}
-                def enter(u, a, sz, d):
-                    if 2400 <= state["n"] <= 2440:
-                        cnt["inside"], cnt["n"] = True, 0
-                def tick(u, a, sz, d):
-                    if cnt["inside"]:
-                        cnt["n"] += 1
-                def leave(u, a, sz, d):
+                cnt = {"inside": False, "n": 0, "sp": 0, "calls": []}
+                def leave():
                     if cnt["inside"]:
                         cnt["inside"] = False
                         cnt["calls"].append(cnt["n"])
+                def enter(u, a, sz, d):
+                    if 2400 <= state["n"] <= 2440:
+                        cnt["inside"], cnt["n"], cnt["sp"] = True, 0, u.reg_read(UC_M68K_REG_A7)
+                def tick(u, a, sz, d):
+                    if cnt["inside"]:
+                        if u.reg_read(UC_M68K_REG_A7) > cnt["sp"]:
+                            leave()
+                        else:
+                            cnt["n"] += 1
                 uc.hook_add(UC_HOOK_CODE, enter, begin=MAP["digigrain_granular_render"], end=MAP["digigrain_granular_render"])
                 uc.hook_add(UC_HOOK_CODE, tick, begin=span[0], end=span[1])
-                uc.hook_add(UC_HOOK_CODE, leave, begin=ret, end=ret)
+                uc.hook_add(UC_HOOK_CODE, lambda u, a, sz, d: leave(), begin=PROBE_AT, end=PROBE_AT)
                 state["cnt"] = cnt
             def at_block(u, a, sz, d):
                 if state["n"] >= 2300:                      # grain pitch (Q16 rate) per call, for the rate-detector check
