@@ -7,7 +7,7 @@ contributors and agents are in `.claude/skills/` and each mod's `CLAUDE.md`.
 
 | mod | what |
 |---|---|
-| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 10, GRANULAR; 0.0.x used id 6 and other knob slots, so 0.0.x kits are not compatible and there is no migration: such a track loads as ONESHOT on a set with no machine at id 6, or as whatever machine holds id 6); 0.0.x verified in the emulator on OS 1.53, 0.1.0 (machine-pages, OS 1.54) emulator-checked only as noted in the commit log |
+| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 10, GRANULAR; 0.0.x used id 6 and other knob slots, so 0.0.x kits are not compatible and there is no migration: such a track loads as ONESHOT on a set with no machine at id 6, or as whatever machine holds id 6); 0.0.x verified in the emulator on OS 1.53; 0.1.0 run on a Digitakt mk1 on OS 1.54 (2026-11-11, with core 4.1 + machine-pages 1.6 and with core 4.3 + machine-pages 1.10: boots, GRANULAR loads and plays), its OS 1.53 build is built and linted but not run, and its emulator probes are not re-run |
 
 ## Prerequisites
 
