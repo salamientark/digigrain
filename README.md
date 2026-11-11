@@ -7,7 +7,7 @@ contributors and agents are in `.claude/skills/` and each mod's `CLAUDE.md`.
 
 | mod | what |
 |---|---|
-| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 10, GRANULAR; 0.0.x used id 6, which Digi Poly also takes, so 0.0.x kits load those tracks as ONESHOT); 0.0.x verified in the emulator on OS 1.53, 0.1.0 (machine-pages, OS 1.54) emulator-checked only as noted in the commit log |
+| [`digigrain`](mods/digigrain) | a granular playback SRC machine (id 10, GRANULAR; 0.0.x used id 6 and other knob slots, so 0.0.x kits are not compatible and there is no migration: such a track loads as ONESHOT on a set with no machine at id 6, or as whatever machine holds id 6); 0.0.x verified in the emulator on OS 1.53, 0.1.0 (machine-pages, OS 1.54) emulator-checked only as noted in the commit log |
 
 ## Prerequisites
 
@@ -23,14 +23,26 @@ contributors and agents are in `.claude/skills/` and each mod's `CLAUDE.md`.
 ## Quickstart
 
 ```sh
-make build   # core + every mod -> out/core, out/<mod>/
-make lint    # dependency-rule check, then each mod alone and combined with core
-make patch   # out/<mod>/test.syx = stock + core + that mod
+make build   # core + machine-pages + every mod -> out/core, out/machine-pages, out/<mod>/
+make lint    # dependency-rule check, then each mod alone and combined with core + machine-pages
+make patch   # out/<mod>/test.syx = stock + core + machine-pages + that mod
 make test    # unit tests (stdlib only)
 make check   # all of the above
 make check MOD=digigrain    # one mod only
 make new-mod NAME=my-mod    # scaffold a new mod from templates/mod
 ```
+
+## Install
+
+Load all three elemods in elekloader (core 3.0 or newer; Digitakt mk1 OS 1.53 or 1.54):
+
+```
+out/<mod>/<mod>-*.elemod
+out/core/core-*.elemod
+out/machine-pages/machine-pages-*.elemod
+```
+
+Build against the stock OS you will run: `ELEKLOADER_STOCK=<1.54 .syx> make build` for 1.54.
 
 ## Layout
 
@@ -79,4 +91,14 @@ startup menu, then send the stock `.syx`. Never commit firmware (`*.syx`,
   call before the stock voice synth, where the shadow voice's words are set.
 - Knob k is the sound's slot 17 + k. 0.0.x sounds, which kept RATE, SPRD and
   ENV in other slots, read differently after 0.1.0.
+
+### Changes from 0.0.x
+
+- Machine id 6 became 10, and three knobs moved to other stock slots: RATE now
+  sits on PLAY's slot (was BR's), SPRD on BR's (was LOOP's), ENV on LOOP's (was
+  PLAY's). POS, RTIO and the rest stayed. MIDI CC/NRPN numbers and LFO
+  destinations follow the slot, so controllers mapped and LFO destinations
+  saved for 0.0.x need re-assigning for RATE, SPRD and ENV.
+- The knob-turn titles are shorter ("Position", "Spread", were "Grain
+  Position", "Grain Spread"), and the LFO destination group is now "GRAN".
 - Open work (further optimisation, hardware tests) is in the issue tracker.

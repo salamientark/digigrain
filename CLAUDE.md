@@ -33,6 +33,7 @@ out/core/  out/<name>/                                               build outpu
 ```sh
 make build | lint | patch | test | check     # every mod; `make check` is the definition of done
 make check MOD=digigrain                     # one mod only (also build/lint/patch/test)
+ELEKLOADER_STOCK_154=<1.54 .syx> make check  # also build/lint/patch the 1.54 variant into out/154; else "NOT CHECKED"
 make new-mod NAME=<name>                     # scaffold mods/<name> from templates/mod
 ```
 Elemods: `out/<mod>/<mod>-*.elemod` and `out/core/core-*.elemod` and `out/machine-pages/machine-pages-*.elemod` (load all three in elekloader); `out/<mod>/test.syx` is the

@@ -1,6 +1,6 @@
 ---
 name: digitakt-hook-bus
-description: Core mod's event hook bus (ev_tick/draw/key/enc/settings/render_in/render_out), handler signatures, calling convention, SETTINGS rows, drawing, hook-shim idioms and register pitfalls. Use when writing handlers or patching firmware code.
+description: Core mod's event hook bus (ev_tick/draw/key/enc/settings/render_in/render_out; machine-pages' ev_render_voices), handler signatures, calling convention, SETTINGS rows, drawing, hook-shim idioms and register pitfalls. Use when writing handlers or patching firmware code.
 ---
 
 # Hook bus (core 2.0a)
@@ -16,8 +16,9 @@ Core owns the shared sites; never patch them, subscribe in `mod.json`. Handlers 
 | `ev_settings` | 0x40058800 | `void f(void *menu)` | add rows via `core_additem(menu,row)` (import it) |
 | `ev_render_in` | 0x40077428 | `void f(void)` | audio ISR, 1500 Hz |
 | `ev_render_out` | 0x400784c8 | `void f(void)` | audio ISR exit |
+| `ev_render_voices` | 0x40077fba (per `digitakt-machines`) | `void f(int32_t *blocks)` (as digigrain declares it: eight 32 x int32 voice blocks) | provided by the machine-pages mod, not core: `requires` it; render ISR after the stock voice synth; digigrain subscribes at order 20 |
 
-Also core `.boot` at 0x40000538 (copies RAM image, zeroes `.bss`, starts DTIM0). All handlers always run except key/enc chains.
+Site addresses in this table are OS 1.53. Also core `.boot` at 0x40000538 (copies RAM image, zeroes `.bss`, starts DTIM0). All handlers always run except key/enc chains.
 
 ## Render-ISR rules
 - 32-frame blocks = 0.67 ms budget; keep short and bounded; no blocking firmware calls; no allocations.

@@ -9,15 +9,19 @@ Authoritative: `../elekloader/elekloader/sdk/build.py` and `docs/FORMAT.md`; tem
 
 ```json
 {
- "id": "digigrain", "version": "0.0.1",
+ "id": "digigrain", "version": "0.1.0",
  "title": "...", "category": "Machines", "author": "...",
  "license": "GPL-2.0-or-later", "description": "...",
  "device": "digitakt-mk1", "os": "1.53",
- "sources": ["granular.c"],
- "subscribe": [{"event": "ev_draw", "fn": "digigrain_granular_draw", "order": 60}],
- "requires": ["core"]
+ "sources": ["src/granular.c", "src/machine.c", "src/synth.s"],
+ "requires": ["core", "machine-pages"],
+ "machines": [{"id": 10, "descriptor": "digigrain_granular_machine"}],
+ "resources": {"core": "3.0"},
+ "subscribe": [{"event": "ev_render_voices", "fn": "digigrain_granular_render", "order": 20}],
+ "ports": {"1.54": {"cflags": ["-DDIGIGRAIN_SMP_TAB=0x4031a3a0"], "sites": ["..."]}}
 }
 ```
+(Shape abridged from mods/digigrain/mod.json; a mod with no machine needs only `requires: ["core"]` and no `machines`.)
 
 | field | notes |
 |---|---|
@@ -33,9 +37,10 @@ Authoritative: `../elekloader/elekloader/sdk/build.py` and `docs/FORMAT.md`; tem
 | `contribute` | `{to, order, data(hex), relocs:[[off,"abs32\|pc32\|pc16","sym:NAME\|sec:NAME\|abs",addend]], claims:[[lo,hi]]}` adds entries to another mod's table; `claims` are image ranges rewritten at run time |
 | `weak` | imports that may be missing (resolve to `core_zero`) |
 | `copied` | image block the mod copies elsewhere at run time |
-| `resources` | `{"names":[...], "regions":[{name,lo,hi}]}` |
-| `requires`/`conflicts` | always `requires: ["core"]` |
-| `ports` | per-OS overrides (digislicer has a `"1.54"` block) |
+| `resources` | `{"names":[...], "regions":[{name,lo,hi}]}`; mods/digigrain/mod.json also has `"core": "3.0"` |
+| `requires`/`conflicts` | `requires` always has `"core"`; mods/digigrain/mod.json has `["core", "machine-pages"]`; `tools/check_boundaries.py` allows only those two |
+| `machines` | as used in mods/digigrain/mod.json: `[{"id": 10, "descriptor": "digigrain_granular_machine"}]` (a global `struct cm_machine`, see `digitakt-machines`) |
+| `ports` | per-OS overrides, e.g. mods/digigrain/mod.json `"1.54": {"cflags": [...], "sites": [...]}` (digislicer has one too); `templates/mod/mod.json` has an empty `"1.54": {}` for a mod that names no firmware address |
 
 ## sites
 `{"addr":"0x...","stock":"<hex of whole stock insns>","op":...,"target":"sym" | "new":"hex","kind":"code"}`

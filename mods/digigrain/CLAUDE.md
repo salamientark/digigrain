@@ -21,3 +21,5 @@ uv run --project ../digiemumac python mods/digigrain/tests/emu/grain_bench.py   
 SYX=$PWD/out/digigrain/test.syx mods/digigrain/tests/emu/make_probe_home.sh      # emulator home for our build, then:
 GRANULAR=1 FW_DIR=out/digigrain/emu/home/firmware/<newest> uv run --project ../digiemumac python mods/digigrain/tests/emu/scale_probe.py
 ```
+The emulator probes default to the 1.53 stock (`../Digitakt_OS1.53.syx`): a 1.54 check needs a build from a 1.54 stock
+(`ELEKLOADER_STOCK=<1.54 syx> make patch MOD=digigrain`) and a probe home made from that `test.syx`.

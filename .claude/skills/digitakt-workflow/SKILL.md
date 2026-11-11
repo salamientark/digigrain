@@ -1,6 +1,6 @@
 ---
 name: digitakt-workflow
-description: Build, lint, patch and flash a Digitakt mk1 (OS 1.53) mod with elekloader; toolchain, repo scripts, recovery. Use when setting up, building or shipping a mod.
+description: Build, lint, patch and flash a Digitakt mk1 (OS 1.53 / 1.54) mod with elekloader; toolchain, repo scripts, recovery. Use when setting up, building or shipping a mod.
 ---
 
 # Digitakt mod workflow (elekloader, mk1 OS 1.53 / 1.54)
@@ -9,9 +9,9 @@ Digitakt mk1 OS 1.53 and 1.54 support linkable (format 2) mods (a mod's `ports.1
 
 ## Repo commands (this repo)
 ```
-make build   # core (once, out/core) + every mod -> out/<mod>/
-make lint    # boundary check (mods -> common only), then each mod alone and with core and the stock OS
-make patch   # out/<mod>/test.syx = stock + core + that mod (--version 0.0t)
+make build   # core + machine-pages (out/core, out/machine-pages) + every mod -> out/<mod>/
+make lint    # boundary check (mods -> common only), then each mod alone and with core + machine-pages and the stock OS
+make patch   # out/<mod>/test.syx = stock + core + machine-pages + that mod (--version 0.0t)
 make test    # stdlib unit tests: tests/, common/tests/, mods/<mod>/tests/
 make check   # all of the above
 make check MOD=digigrain          # any target for one mod only
@@ -22,12 +22,12 @@ Layout: one mod per `mods/<name>/` (`mod.json`, `src/`, `tests/`, optional `tool
 ## Raw loop (what the scripts run)
 ```
 python -m elekloader.sdk.build <moddir> --stock <stock.syx> [--out DIR]   # prints BUILT <path>
-python -m elekloader.lint <mod.elemod> --stock <stock.syx> --with <core.elemod> [--json]
-python -m elekloader.patch --stock <stock.syx> --mod <core.elemod> --mod <mod.elemod> --out test.syx --version XXXX [--check]
+python -m elekloader.lint <mod.elemod> --stock <stock.syx> --with <core.elemod> --with <machine-pages.elemod> [--json]
+python -m elekloader.patch --stock <stock.syx> --mod <core.elemod> --mod <machine-pages.elemod> --mod <mod.elemod> --out test.syx --version XXXX [--check]
 ```
-- Core builds from `../elekloader/mods/core` (now 2.1, `core-2.1.elemod`; 2.1 adds SRC machine slots). If `out/core` holds an older core, delete it and rebuild. Every format-2 set needs exactly one core.
+- Core and machine-pages build from `../elekloader/mods/core` and `../elekloader/mods/machine-pages` (digigrain 0.1.0 needs core 3.0+, `resources.core: "3.0"`). If in doubt about a stale build (other stock OS, updated elekloader), delete `out/core` and `out/machine-pages` and rebuild. Every format-2 set needs exactly one core. Load all three elemods (`out/core/core-*.elemod`, `out/machine-pages/machine-pages-*.elemod`, `out/<mod>/<mod>-*.elemod`) in elekloader.
 - `--version` is exactly 4 ASCII chars; use a distinct tag per flash so you can confirm which build is on the unit.
-- Lint with `--stock` but without `--with core` fails "X requires core".
+- Lint with `--stock` but without `--with` each required mod fails "X requires Y" (core, and machine-pages for a mod that requires it).
 - Bump the mod `version` on every change.
 
 ## Toolchain
@@ -44,7 +44,7 @@ python -m elekloader.patch --stock <stock.syx> --mod <core.elemod> --mod <mod.el
 5. One owner per byte. 6. Let the linker place code/data. 7. Only 32-bit abs / 32/16-bit PC-relative relocs.
 8. One global namespace: prefix globals with the mod id, make internals `static`.
 9. Claim resources in `resources.names`/`regions`. 10. Inside another mod's copied block use absolute addressing.
-11. `requires: ["core"]`, `conflicts` as needed. 12. One mod file targets one OS release.
+11. `requires: ["core"]` (plus `"machine-pages"` for a machine with a machine-pages page, as digigrain), `conflicts` as needed; only these platform mods (`tools/check_boundaries.py`). 12. One mod file names one OS (`os`); other releases go in its `ports` block (digigrain: `ports.1.54`).
 
 ## Refusals -> fix
 | message | fix |
